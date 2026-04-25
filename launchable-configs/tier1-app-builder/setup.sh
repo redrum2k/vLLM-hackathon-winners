@@ -20,6 +20,10 @@ echo "============================================="
 sudo apt-get update -qq
 sudo apt-get install -y -qq git curl wget jq htop tmux tree
 
+# --- Create /models dir with correct ownership ---
+sudo mkdir -p /models
+sudo chown "$(whoami):$(whoami)" /models
+
 # --- Python environment ---
 echo "[1/6] Setting up Python environment..."
 PIP="pip install --break-system-packages -q --timeout 300 --retries 5"
@@ -32,6 +36,8 @@ $PIP "numpy<2"
 # Install in small batches — if one package times out it won't kill everything
 echo "      [1a] Core ML stack..."
 $PIP vllm torch transformers huggingface_hub
+# Fix dependency conflict: vllm requires a specific compressed-tensors version
+$PIP "compressed-tensors==0.15.0.1"
 
 echo "      [1b] LangChain..."
 $PIP langchain langchain-community langchain-huggingface
