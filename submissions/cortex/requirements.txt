@@ -24,6 +24,7 @@ rank-bm25>=0.2,<1.0
 # --- Evaluation ---
 ragas>=0.2,<1.0
 datasets>=3.0,<4.0
+langchain-openai>=0.1,<1.0
 
 # --- UI (UI Lead) ---
 streamlit>=1.40,<2.0

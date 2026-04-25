@@ -18,10 +18,12 @@ Expand EVAL_SET with domain-specific questions before the demo.
 from __future__ import annotations
 
 import argparse
-import os
 
 from datasets import Dataset
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from ragas import evaluate
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import (
     answer_relevancy,
     context_precision,
@@ -30,7 +32,7 @@ from ragas.metrics import (
 )
 
 from pipeline.retriever import query
-from shared.config import VLLM_TEXT_ENDPOINT
+from shared.config import EMBEDDING_MODEL, TEXT_MODEL, VLLM_TEXT_ENDPOINT
 
 # ---------------------------------------------------------------------------
 # Evaluation dataset
@@ -66,9 +68,18 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
     Returns:
         dict of metric_name → aggregate score
     """
-    # Point RAGAs at vLLM so it doesn't need an OpenAI key
-    os.environ.setdefault("OPENAI_API_BASE", VLLM_TEXT_ENDPOINT)
-    os.environ.setdefault("OPENAI_API_KEY", "not-needed")
+    # Wire RAGAs to use vLLM instead of OpenAI
+    ragas_llm = LangchainLLMWrapper(ChatOpenAI(
+        model=TEXT_MODEL,
+        base_url=VLLM_TEXT_ENDPOINT,
+        api_key="not-needed",
+        temperature=0,
+    ))
+    ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(
+        model="text-embedding-3-small",  # name ignored — vLLM serves its own embedding model
+        base_url=VLLM_TEXT_ENDPOINT,
+        api_key="not-needed",
+    ))
 
     print(f"[eval] Method: {method}  |  Questions: {len(EVAL_SET)}")
     rows = []
@@ -86,7 +97,7 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
     dataset = Dataset.from_list(rows)
 
     print("\n[eval] Scoring with RAGAs ...")
-    result = evaluate(dataset, metrics=METRICS)
+    result = evaluate(dataset, metrics=METRICS, llm=ragas_llm, embeddings=ragas_embeddings)
 
     print("\n--- RAGAs results ---")
     print(result)
