@@ -20,6 +20,8 @@ sudo apt-get install -y -qq git curl wget jq htop tmux tree
 # --- Python environment ---
 echo "[1/6] Setting up Python environment..."
 pip install --upgrade pip --break-system-packages -q
+# Pin numpy<2 first: numpy.distutils was removed in 2.0, breaking numexpr's source build
+pip install --break-system-packages -q "numpy<2"
 pip install --break-system-packages -q \
     vllm \
     torch \
