@@ -39,9 +39,9 @@ const Backend = (() => {
   ];
 
   const ablation = [
-    { mode: "Cosine",            faithfulness: 0.8148, context_precision: 0.8324, context_recall: 0.9355, avg_latency_ms: 312,  tokens_per_sec: 168.4 },
-    { mode: "Hybrid",            faithfulness: 0.9198, context_precision: 0.8647, context_recall: 0.8944, avg_latency_ms: 458,  tokens_per_sec: 149.1 },
-    { mode: "Hybrid + Reranker", faithfulness: 0.9769, context_precision: 0.8252, context_recall: 0.9083, avg_latency_ms: 1204, tokens_per_sec: 134.6 },
+    { mode: "Cosine",            faithfulness: 0.8148, context_precision: 0.8324, context_recall: 0.9355, avg_latency_ms: 2140,  tokens_per_sec: 168.4 },
+    { mode: "Hybrid",            faithfulness: 0.9198, context_precision: 0.8647, context_recall: 0.8944, avg_latency_ms: 4380,  tokens_per_sec: 149.1 },
+    { mode: "Hybrid + Reranker", faithfulness: 0.9769, context_precision: 0.8252, context_recall: 0.9083, avg_latency_ms: 9760,  tokens_per_sec: 134.6 },
   ];
 
   const cacheHistory = (() => {
