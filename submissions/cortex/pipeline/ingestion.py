@@ -80,22 +80,63 @@ def _describe_image(client: OpenAI, image_bytes: bytes) -> str:
 # drive/ — PDFs, images, text
 # ---------------------------------------------------------------------------
 
+_TEXT_COVERAGE_THRESHOLD = 0.25  # use vision if <25% of page area is covered by text
+
+
+def _page_is_visual(page: fitz.Page) -> bool:
+    """Return True if the page is image-heavy enough to warrant the vision model."""
+    text = page.get_text("text").strip()
+    if len(text) < 80:
+        return True  # almost no extractable text — treat as visual
+    blocks = page.get_text("blocks")
+    text_area = sum(
+        (b[2] - b[0]) * (b[3] - b[1])
+        for b in blocks if b[6] == 0  # block type 0 = text
+    )
+    page_area = page.rect.width * page.rect.height
+    return page_area > 0 and (text_area / page_area) < _TEXT_COVERAGE_THRESHOLD
+
+
 def _ingest_pdf(path: Path, vision_client: OpenAI) -> list[Chunk]:
     chunks = []
     doc = fitz.open(str(path))
+    splitter = SentenceSplitter(chunk_size=512, chunk_overlap=64)
     for i, page in enumerate(doc):
-        pix = page.get_pixmap(dpi=150)
-        text = _describe_image(vision_client, pix.tobytes("png"))
-        if not text.strip():
+        if _page_is_visual(page):
+            pix = page.get_pixmap(dpi=150)
+            text = _describe_image(vision_client, pix.tobytes("png"))
+            is_visual = True
+        else:
+            text = page.get_text("text")
+            is_visual = False
+
+        text = text.strip()
+        if not text:
             continue
-        chunks.append(Chunk(
-            text=text,
-            source=path.name,
-            page=i + 1,
-            chunk_id=_chunk_id(path.name, i + 1, text),
-            is_visual=True,
-            metadata={"file_path": str(path), "type": "pdf_page"},
-        ))
+
+        if is_visual:
+            chunks.append(Chunk(
+                text=text,
+                source=path.name,
+                page=i + 1,
+                chunk_id=_chunk_id(path.name, i + 1, text),
+                is_visual=True,
+                metadata={"file_path": str(path), "type": "pdf_page_visual"},
+            ))
+        else:
+            nodes = splitter.get_nodes_from_documents([Document(text=text)])
+            for node in nodes:
+                t = node.get_content().strip()
+                if not t:
+                    continue
+                chunks.append(Chunk(
+                    text=t,
+                    source=path.name,
+                    page=i + 1,
+                    chunk_id=_chunk_id(path.name, i + 1, t),
+                    is_visual=False,
+                    metadata={"file_path": str(path), "type": "pdf_page_text"},
+                ))
     return chunks
 
 
