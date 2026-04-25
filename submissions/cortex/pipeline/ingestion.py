@@ -56,7 +56,7 @@ _VISION_PROMPT = (
 # ---------------------------------------------------------------------------
 
 def _chunk_id(source: str, page: int | None, text: str) -> str:
-    key = f"{source}:{page}:{text[:64]}"
+    key = f"{source}:{page}:{text}"
     return hashlib.md5(key.encode()).hexdigest()
 
 
