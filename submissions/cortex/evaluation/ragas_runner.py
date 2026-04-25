@@ -1,7 +1,7 @@
 """RAGAs evaluation harness. Owned by Evaluation Lead.
 
 Runs the full eval set through any retrieval method and scores with RAGAs metrics:
-  faithfulness, answer_relevancy, context_precision, context_recall
+  faithfulness, context_precision, context_recall
 
 Usage:
   python -m evaluation.ragas_runner                     # cosine (default)
@@ -20,11 +20,10 @@ from __future__ import annotations
 import argparse
 
 from datasets import Dataset
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from ragas import evaluate
-from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
-from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
+from ragas.metrics import ContextPrecision, ContextRecall, Faithfulness
 
 from pipeline.retriever import query
 from shared.config import TEXT_MODEL, VLLM_TEXT_ENDPOINT
@@ -68,16 +67,12 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
         api_key="not-needed",
         temperature=0,
     ))
-    ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        base_url=VLLM_TEXT_ENDPOINT,
-        api_key="not-needed",
-    ))
 
     # Instantiate metrics with the custom LLM — required in RAGAs 0.2+
+    # AnswerRelevancy omitted: it requires an embeddings endpoint which vLLM
+    # generation models don't expose.
     metrics = [
         Faithfulness(llm=ragas_llm),
-        AnswerRelevancy(llm=ragas_llm, embeddings=ragas_embeddings),
         ContextPrecision(llm=ragas_llm),
         ContextRecall(llm=ragas_llm),
     ]
@@ -98,7 +93,7 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
     dataset = Dataset.from_list(rows)
 
     print("\n[eval] Scoring with RAGAs ...")
-    result = evaluate(dataset, metrics=metrics, llm=ragas_llm, embeddings=ragas_embeddings)
+    result = evaluate(dataset, metrics=metrics, llm=ragas_llm)
 
     print("\n--- RAGAs results ---")
     print(result)
@@ -107,7 +102,7 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
     result.to_pandas().to_csv(csv_path, index=False)
     print(f"\n✓ Per-question scores saved to {csv_path}")
 
-    return dict(result)
+    return result.to_pandas().mean(numeric_only=True).to_dict()
 
 
 if __name__ == "__main__":
