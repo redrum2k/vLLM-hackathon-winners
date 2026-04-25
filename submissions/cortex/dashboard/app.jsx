@@ -131,39 +131,6 @@ function TodayPage({ setPage, B }) {
       </div>
       <p className="subhead">{subhead}</p>
 
-      {/* TWO COL */}
-      <div className="two-col">
-        <div className="col">
-          <div className="sec-head">
-            <span className="sec-label">YOUR ASSIGNMENTS</span>
-            <span className="sec-count">({B.assignments.length} OPEN)</span>
-          </div>
-          <div className="sec-rule"></div>
-          {B.assignments.map((a, i) => (
-            <div key={i} className={`assn ${a.is_overdue ? "over" : ""}`}>
-              <span className="id">{a.ticket_id}</span>
-              <span className="ttl">{a.title}</span>
-              <span className="due">{a.due_label.toUpperCase()}</span>
-            </div>
-          ))}
-        </div>
-        <div className="col">
-          <div className="sec-head">
-            <span className="sec-label">WHAT CHANGED</span>
-            <span className="sec-count">({B.teamSignals.length} NEW)</span>
-          </div>
-          <div className="sec-rule"></div>
-          {B.teamSignals.map((s, i) => (
-            <div key={i} className="signal">
-              <span className={`kind ${s.kind}`}>{s.kind}</span>
-              <div className="ttl">{s.title}</div>
-              <div className="sm">{s.summary}</div>
-              <div className="when">{s.when}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ASK */}
       <div className="ask-block">
         <div className="sec-head">
@@ -205,6 +172,39 @@ function TodayPage({ setPage, B }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* TWO COL */}
+      <div className="two-col">
+        <div className="col">
+          <div className="sec-head">
+            <span className="sec-label">YOUR ASSIGNMENTS</span>
+            <span className="sec-count">({B.assignments.length} OPEN)</span>
+          </div>
+          <div className="sec-rule"></div>
+          {B.assignments.map((a, i) => (
+            <div key={i} className={`assn ${a.is_overdue ? "over" : ""}`}>
+              <span className="id">{a.ticket_id}</span>
+              <span className="ttl">{a.title}</span>
+              <span className="due">{a.due_label.toUpperCase()}</span>
+            </div>
+          ))}
+        </div>
+        <div className="col">
+          <div className="sec-head">
+            <span className="sec-label">WHAT CHANGED</span>
+            <span className="sec-count">({B.teamSignals.length} NEW)</span>
+          </div>
+          <div className="sec-rule"></div>
+          {B.teamSignals.map((s, i) => (
+            <div key={i} className="signal">
+              <span className={`kind ${s.kind}`}>{s.kind}</span>
+              <div className="ttl">{s.title}</div>
+              <div className="sm">{s.summary}</div>
+              <div className="when">{s.when}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Fixed input — always at bottom */}
