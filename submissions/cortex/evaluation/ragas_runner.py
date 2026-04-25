@@ -24,15 +24,10 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from ragas import evaluate
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
-from ragas.metrics import (
-    answer_relevancy,
-    context_precision,
-    context_recall,
-    faithfulness,
-)
+from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
 
 from pipeline.retriever import query
-from shared.config import EMBEDDING_MODEL, TEXT_MODEL, VLLM_TEXT_ENDPOINT
+from shared.config import TEXT_MODEL, VLLM_TEXT_ENDPOINT
 
 # ---------------------------------------------------------------------------
 # Evaluation dataset
@@ -55,8 +50,6 @@ EVAL_SET: list[dict] = [
     },
 ]
 
-METRICS = [faithfulness, answer_relevancy, context_precision, context_recall]
-
 
 def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
     """Run RAGAs evaluation for a given retrieval method.
@@ -76,10 +69,18 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
         temperature=0,
     ))
     ragas_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(
-        model="text-embedding-3-small",  # name ignored — vLLM serves its own embedding model
+        model="text-embedding-3-small",
         base_url=VLLM_TEXT_ENDPOINT,
         api_key="not-needed",
     ))
+
+    # Instantiate metrics with the custom LLM — required in RAGAs 0.2+
+    metrics = [
+        Faithfulness(llm=ragas_llm),
+        AnswerRelevancy(llm=ragas_llm, embeddings=ragas_embeddings),
+        ContextPrecision(llm=ragas_llm),
+        ContextRecall(llm=ragas_llm),
+    ]
 
     print(f"[eval] Method: {method}  |  Questions: {len(EVAL_SET)}")
     rows = []
@@ -97,7 +98,7 @@ def run_eval(method: str = "cosine", output_csv: str | None = None) -> dict:
     dataset = Dataset.from_list(rows)
 
     print("\n[eval] Scoring with RAGAs ...")
-    result = evaluate(dataset, metrics=METRICS, llm=ragas_llm, embeddings=ragas_embeddings)
+    result = evaluate(dataset, metrics=metrics, llm=ragas_llm, embeddings=ragas_embeddings)
 
     print("\n--- RAGAs results ---")
     print(result)
