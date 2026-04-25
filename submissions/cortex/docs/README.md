@@ -86,14 +86,12 @@ CUDA_VISIBLE_DEVICES=0 bash /workspace/start_vllm_server.sh
 # Ctrl+B then " to split pane
 
 # --- GPU 1: vision model (port 8001) ---
-# HF_TOKEN must be set — Llama 3.2 Vision is a gated model
-export HF_TOKEN=hf_YOUR_TOKEN_HERE
-CUDA_VISIBLE_DEVICES=1 vllm serve meta-llama/Llama-3.2-11B-Vision-Instruct \
+# Qwen2.5-VL-7B-Instruct — not gated, no HF_TOKEN needed
+CUDA_VISIBLE_DEVICES=1 vllm serve Qwen/Qwen2.5-VL-7B-Instruct \
   --host 0.0.0.0 \
   --port 8001 \
   --max-model-len 8192 \
   --gpu-memory-utilization 0.90 \
-  --enable-prefix-caching \
   --dtype auto
 
 # Ctrl+B then D to detach (servers keep running)

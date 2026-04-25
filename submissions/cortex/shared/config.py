@@ -11,7 +11,7 @@ VLLM_VISION_ENDPOINT = os.getenv("VLLM_VISION_ENDPOINT", "http://localhost:8001/
 
 # Model names (must match what vLLM was started with)
 TEXT_MODEL   = os.getenv("TEXT_MODEL",   "meta-llama/Llama-3.1-8B-Instruct")
-VISION_MODEL = os.getenv("VISION_MODEL", "meta-llama/Llama-3.2-11B-Vision-Instruct")
+VISION_MODEL = os.getenv("VISION_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct")
 
 # ChromaDB
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
