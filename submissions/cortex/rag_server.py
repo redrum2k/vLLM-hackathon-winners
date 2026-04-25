@@ -5,8 +5,8 @@ Run:
     py -3.11 -m uvicorn rag_server:app --port 8002
 
 Env vars (all optional, override in .env):
-    CHROMA_PERSIST_DIR   path to chroma_db   (default: ../../projects/track2-ragas-rerank/chroma_db)
-    CHROMA_COLLECTION    collection name      (default: track2_docs)
+    CHROMA_PERSIST_DIR   path to chroma_db   (default: ./chroma_db)
+    CHROMA_COLLECTION    collection name      (default: cortex_corpus)
     VLLM_TEXT_ENDPOINT   LLM API base URL     (default: http://localhost:8000/v1)
     TEXT_MODEL           model name           (default: /models/llama-3.1-8b-instruct)
     EMBEDDING_MODEL      HF embedding model   (default: BAAI/bge-small-en-v1.5)
@@ -35,8 +35,8 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 # ── Config ────────────────────────────────────────────────────────────────────
 _here = Path(__file__).parent                     # .../submissions/cortex
 _repo = _here.parent.parent                       # .../vLLM-hackathon-winners
-CHROMA_DIR   = os.getenv("CHROMA_PERSIST_DIR", str(_repo / "projects" / "track2-ragas-rerank" / "chroma_db"))
-COLLECTION   = os.getenv("CHROMA_COLLECTION",  "track2_docs")
+CHROMA_DIR   = os.getenv("CHROMA_PERSIST_DIR", str(_here / "chroma_db"))
+COLLECTION   = os.getenv("CHROMA_COLLECTION",  "cortex_corpus")
 EMBED_MODEL  = os.getenv("EMBEDDING_MODEL",    "BAAI/bge-small-en-v1.5")
 LLM_ENDPOINT = os.getenv("VLLM_TEXT_ENDPOINT", "http://localhost:8000/v1")
 LLM_MODEL    = os.getenv("TEXT_MODEL",         "/models/llama-3.1-8b-instruct")
