@@ -29,7 +29,7 @@ button{background:none;border:none;cursor:pointer;color:inherit}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.5}}
 
 .chips{position:fixed;top:72px;right:32px;z-index:50;display:flex;flex-direction:column;gap:4px}
-.chip-nav{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.12em;background:#fff;border:1px solid var(--border-strong);color:var(--text-primary);transition:background 150ms,color 150ms}
+.chip-nav{min-width:36px;height:36px;padding:0 12px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;background:#fff;border:1px solid var(--border-strong);color:var(--text-primary);transition:background 150ms,color 150ms;white-space:nowrap}
 .chip-nav:hover{background:var(--surface)}
 .chip-nav.active{background:var(--chip-bg);color:#fff;border-color:var(--chip-bg)}
 
@@ -95,7 +95,8 @@ button{background:none;border:none;cursor:pointer;color:inherit}
 
 /* ASK */
 .ask-block{margin-top:80px}
-.ask-input{width:100%;height:64px;border:1.5px solid var(--border-strong);padding:20px 24px;font-size:18px;background:#fff;color:var(--text-primary)}
+.ask-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:min(720px,calc(100% - 192px));z-index:50}
+.ask-input{width:100%;height:56px;border:1.5px solid var(--border-strong);padding:16px 24px;font-size:16px;background:#fff;color:var(--text-primary)}
 .ask-input::placeholder{font-family:'Fraunces',serif;font-style:italic;color:var(--text-tertiary)}
 .ask-input:focus{border-color:var(--accent)}
 .try-label{margin-top:20px;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--text-primary)}
@@ -106,8 +107,8 @@ button{background:none;border:none;cursor:pointer;color:inherit}
 .try-row:hover .ar{opacity:1}
 
 /* CHAT */
-.chat-grid{display:grid;grid-template-columns:minmax(0,660px) 56px 280px;margin-top:24px}
-.thread{display:flex;flex-direction:column;gap:36px;margin-bottom:24px}
+.chat-grid{display:grid;grid-template-columns:minmax(0,640px) 280px;gap:64px;margin-top:24px;align-items:start}
+.thread{display:flex;flex-direction:column;gap:36px;padding-bottom:100px}
 .msg-user{align-self:flex-end;max-width:75%;background:var(--surface-2);padding:14px 18px;font-size:15px;color:var(--text-primary);line-height:1.5}
 .msg-atlas{align-self:flex-start;font-size:17px;line-height:1.6;color:var(--text-primary)}
 .cite{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);vertical-align:super;line-height:0;margin-left:1px;cursor:pointer;position:relative}
@@ -118,9 +119,13 @@ button{background:none;border:none;cursor:pointer;color:inherit}
 .cite-card .score{margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);text-align:right}
 .thinking{font-family:'Fraunces',serif;font-style:italic;font-size:18px;color:var(--accent);align-self:flex-start;animation:think 1.2s ease-in-out infinite}
 @keyframes think{0%,100%{opacity:.6}50%{opacity:1}}
+.msg-error{border-left:2px solid var(--accent);padding-left:16px}
+.err-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent);display:block;margin-bottom:8px}
+.err-body{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-secondary);white-space:pre-wrap;line-height:1.6;margin:0}
 
 /* RAIL */
-.rail{display:flex;flex-direction:column;gap:56px}
+.rail{display:flex;flex-direction:column;gap:40px}
+.rail-static{position:sticky;top:100px}
 .mode-toggle{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
 .mode{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-tertiary);padding:0 0 6px;position:relative}
 .mode:hover{color:var(--text-primary)}

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(curl:*)",
+      "Bash(Invoke-RestMethod \"http://localhost:3001/api/slack/signals\")",
+      "Bash(cmd /c \"netstat -ano | findstr :3001\")",
+      "Bash(# The server on port 3001 is NOT the one from this directory - it was started elsewhere # Let''s find the node process and where it''s running from wmic process where \"\"name=''node.exe''\"\" get processid,commandline)",
+      "Bash(powershell -Command \"\\(Get-WmiObject Win32_Process -Filter ''ProcessId=56204''\\).CommandLine\")",
+      "Bash(powershell -Command \"$proc = Get-Process -Id 56204 -ErrorAction SilentlyContinue; if\\($proc\\) { \\(Get-Item $proc.MainModule.FileName\\).Directory.FullName }\")"
+    ]
+  }
+}

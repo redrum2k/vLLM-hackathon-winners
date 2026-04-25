@@ -1,9 +1,8 @@
 // Atlas SPA — chrome, routing, all four pages
 const { useState, useEffect, useRef, useMemo } = React;
-const B = window.Backend;
 
 // ---------- CHROME ----------
-function Chrome({ page, setPage }) {
+function Chrome({ page, setPage, B }) {
   const [time, setTime] = useState(formatTime());
   useEffect(() => {
     const i = setInterval(() => setTime(formatTime()), 30000);
@@ -13,7 +12,7 @@ function Chrome({ page, setPage }) {
     const d = new Date();
     const hh = String(d.getHours()).padStart(2, "0");
     const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${hh} ${mm} EDT`;
+    return `${hh}:${mm} EDT`;
   }
   const e = B.employee;
   return (
@@ -27,22 +26,22 @@ function Chrome({ page, setPage }) {
         <span className="nm">{e.workspace}</span>
       </div>
       <div className="chrome-tr">
-        {time}&nbsp;&nbsp;<span className="live-dot"></span>LIVE INDEX LIVE
+        {time}&nbsp;&nbsp;<span className="live-dot"></span>LIVE
       </div>
       <div className="chips">
         {[
-          ["01", "today"],
-          ["02", "sources"],
-          ["03", "metrics"],
-          ["04", "archive"],
-        ].map(([n, p]) => (
+          ["Today", "today"],
+          ["Sources", "sources"],
+          ["Metrics", "metrics"],
+          ["Archive", "archive"],
+        ].map(([label, p]) => (
           <button
             key={p}
             className={`chip-nav ${page === p ? "active" : ""}`}
             onClick={() => setPage(p)}
             aria-label={`Go to ${p}`}
           >
-            {n}
+            {label}
           </button>
         ))}
       </div>
@@ -51,13 +50,12 @@ function Chrome({ page, setPage }) {
 }
 
 // ---------- TODAY ----------
-function TodayPage({ setPage }) {
+function TodayPage({ setPage, B }) {
   const [messages, setMessages] = useState([]); // {role, content, contexts?}
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [mode, setMode] = useState("Hybrid + Reranker");
-  const [scores, setScores] = useState(B.ablation.find(a => a.mode === "Hybrid + Reranker"));
-  const [deltas, setDeltas] = useState(null);
+  const [userRole, setUserRole] = useState("student");
   const [lightbox, setLightbox] = useState(null);
   const inputRef = useRef(null);
   const m = B.nextMeeting;
@@ -68,17 +66,32 @@ function TodayPage({ setPage }) {
   // expose focus for cmd+k
   useEffect(() => { window.__focusAtlas = () => inputRef.current?.focus(); return () => { delete window.__focusAtlas; }; }, []);
 
-  function ask(text) {
+  async function ask(text) {
     const q = text.trim();
     if (!q) return;
     setMessages(prev => [...prev, { role: "user", content: q }]);
     setInput("");
     setThinking(true);
-    const contexts = B.seedChunks[mode];
-    const answer = B.seedAnswer[mode];
-    setTimeout(() => {
+
+    try {
+      const res = await fetch("/api/rag/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q, mode, role: userRole }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "RAG query failed");
+
+      const answer = data.answer || "";
+      const contexts = (data.contexts || []).map(c => ({
+        doc_title: c.doc_title,
+        doc_type: c.doc_type || "page",
+        snippet: c.snippet,
+        score: c.score,
+      }));
+
       setThinking(false);
-      // streamed reveal
       let i = 0;
       const idx = Math.random();
       setMessages(prev => [...prev, { role: "atlas", content: "", contexts, _id: idx }]);
@@ -89,29 +102,25 @@ function TodayPage({ setPage }) {
         else setMessages(prev => prev.map(msg => msg._id === idx ? { ...msg, content: answer } : msg));
       };
       tick();
-    }, 700);
+    } catch (e) {
+      setThinking(false);
+      const errMsg = e.message?.includes("Cannot POST") || e.message?.includes("Failed to fetch") || e.message?.includes("not reachable")
+        ? "RAG server is offline. Start it with:\n\ncd submissions/cortex\npy -3.11 -m uvicorn rag_server:app --port 8002\n\nAlso make sure the Node server is running:\n\ncd submissions/cortex/dashboard\nnode server.js"
+        : `Error: ${e.message}`;
+      setMessages(prev => [...prev, { role: "atlas", content: errMsg, contexts: null, _isError: true, _id: Math.random() }]);
+      console.error("RAG query failed:", e.message);
+    }
   }
 
   function changeMode(newMode) {
     if (newMode === mode) return;
-    const prevScores = scores;
-    const newScores = B.ablation.find(a => a.mode === newMode);
-    const d = {
-      faithfulness: newScores.faithfulness - prevScores.faithfulness,
-      answer_relevancy: newScores.answer_relevancy - prevScores.answer_relevancy,
-      context_precision: newScores.context_precision - prevScores.context_precision,
-      context_recall: newScores.context_recall - prevScores.context_recall,
-    };
     setMode(newMode);
-    setScores(newScores);
-    setDeltas(d);
-    setTimeout(() => setDeltas(null), 2000);
   }
 
   const hasChat = messages.length > 0;
   const hasOverdue = B.assignments.some(a => a.is_overdue);
   const subhead = hasOverdue
-    ? "ACME-408 is overdue. Three threads from yesterday's API review still need closing. Your next meeting is the place to close them."
+    ? "BU-408 is overdue. Three threads from yesterday's API review still need closing. Your next meeting is the place to close them."
     : "Three threads still moving from yesterday's API review. Your next meeting is the place to close them.";
 
   const lastContexts = useMemo(() => {
@@ -124,7 +133,6 @@ function TodayPage({ setPage }) {
     <div className="page">
       <div className="hero-wrap">
         <h1 className="headline">Good morning, <span className="ital">{B.employee.first_name}</span>.</h1>
-        <img src="assets/arrow-curve-down.svg" className="arrow-callout right-of" alt="" />
       </div>
       <p className="subhead">{subhead}</p>
 
@@ -188,20 +196,12 @@ function TodayPage({ setPage }) {
       <div className="ask-block">
         <div className="sec-head">
           <span className="sec-label">ASK ATLAS</span>
-          <span className="sec-tag">grounded in everything Acme.</span>
+          <span className="sec-tag">grounded in everything BU.</span>
         </div>
         <div className="sec-rule"></div>
 
-        {!hasChat ? (
+        {!hasChat && (
           <>
-            <input
-              ref={inputRef}
-              className="ask-input"
-              placeholder="Ask anything about Acme."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") ask(input); }}
-            />
             <div className="try-label" style={{marginBottom:16}}>TRY ASKING</div>
             {[
               "Brief me on the v2 API design review.",
@@ -214,34 +214,37 @@ function TodayPage({ setPage }) {
               </div>
             ))}
           </>
-        ) : (
+        )}
+
+        {hasChat && (
           <div className="chat-grid">
-            <div>
-              <div className="thread">
-                {messages.map((msg, i) =>
-                  msg.role === "user" ? (
-                    <div key={i} className="msg-user">{msg.content}</div>
-                  ) : (
-                    <AtlasMessage key={i} msg={msg} setLightbox={setLightbox} />
-                  )
-                )}
-                {thinking && <div className="thinking">thinking</div>}
-              </div>
-              <input
-                ref={inputRef}
-                className="ask-input"
-                placeholder="Ask anything about Acme."
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") ask(input); }}
-              />
+            <div className="thread">
+              {messages.map((msg, i) =>
+                msg.role === "user" ? (
+                  <div key={i} className="msg-user">{msg.content}</div>
+                ) : (
+                  <AtlasMessage key={i} msg={msg} setLightbox={setLightbox} />
+                )
+              )}
+              {thinking && <div className="thinking">thinking</div>}
             </div>
-            <div></div>
             <div className="rail-static">
-              <Rail mode={mode} changeMode={changeMode} scores={scores} deltas={deltas} contexts={lastContexts} />
+              <Rail mode={mode} changeMode={changeMode} contexts={lastContexts} userRole={userRole} setUserRole={setUserRole} />
             </div>
           </div>
         )}
+      </div>
+
+      {/* Fixed input — always at bottom */}
+      <div className="ask-wrap">
+        <input
+          ref={inputRef}
+          className="ask-input"
+          placeholder="Ask anything about BU CORP."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") ask(input); }}
+        />
       </div>
       {lightbox && (
         <div className="lightbox" onClick={() => setLightbox(null)}>
@@ -253,6 +256,14 @@ function TodayPage({ setPage }) {
 }
 
 function AtlasMessage({ msg, setLightbox }) {
+  if (msg._isError) {
+    return (
+      <div className="msg-atlas msg-error">
+        <span className="err-label">ATLAS OFFLINE</span>
+        <pre className="err-body">{msg.content}</pre>
+      </div>
+    );
+  }
   // Render with citations [1][2][3] -> sup
   const parts = msg.content.split(/(\[\d\])/g);
   return (
@@ -279,17 +290,25 @@ function AtlasMessage({ msg, setLightbox }) {
   );
 }
 
-function Rail({ mode, changeMode, scores, deltas, contexts }) {
+function Rail({ mode, changeMode, contexts, userRole, setUserRole }) {
   const modes = ["Cosine", "Hybrid", "Hybrid + Reranker"];
-  const stats = B.inferenceStats;
-  const evalMetrics = [
-    ["FAITHFULNESS", "faithfulness"],
-    ["ANSWER RELEVANCY", "answer_relevancy"],
-    ["CONTEXT PRECISION", "context_precision"],
-    ["CONTEXT RECALL", "context_recall"],
-  ];
+  const roles = ["faculty", "student", "guest"];
   return (
     <div className="rail">
+      <div>
+        <div className="sec-label">ROLE</div>
+        <div className="sec-rule"></div>
+        <div className="mode-toggle">
+          {roles.map((r, i) => (
+            <React.Fragment key={r}>
+              <button className={`mode ${userRole === r ? "active" : ""}`} onClick={() => setUserRole(r)}>
+                {r.toUpperCase()}
+              </button>
+              {i < roles.length - 1 && <span className="mode-sep">·</span>}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
       <div>
         <div className="sec-label">RETRIEVAL</div>
         <div className="sec-rule"></div>
@@ -304,59 +323,36 @@ function Rail({ mode, changeMode, scores, deltas, contexts }) {
           ))}
         </div>
       </div>
-      <div>
-        <div className="sec-label">SOURCES</div>
-        <div className="sec-rule"></div>
-        {(contexts || []).map((c, i) => (
-          <div key={i} className="source">
-            <span className="src-num">{i + 1}</span>
-            <div>
-              <div className="src-title">{c.doc_title}</div>
-              <div className="src-snip">{c.snippet}</div>
+      {contexts && contexts.length > 0 && (
+        <div>
+          <div className="sec-label">SOURCES</div>
+          <div className="sec-rule"></div>
+          {contexts.map((c, i) => (
+            <div key={i} className="source">
+              <span className="src-num">{i + 1}</span>
+              <div>
+                <div className="src-title">{c.doc_title}</div>
+                <div className="src-snip">{c.snippet}</div>
+              </div>
             </div>
-            <span className="src-score">{c.score.toFixed(2)}</span>
-          </div>
-        ))}
-      </div>
-      <div>
-        <div className="sec-label">EVAL</div>
-        <div className="sec-rule"></div>
-        {evalMetrics.map(([label, key]) => {
-          const v = scores[key];
-          const d = deltas?.[key];
-          return (
-            <div key={key} className="eval-row">
-              <span className="eval-label">{label}</span>
-              <div className="eval-bar"><div className="eval-fill" style={{ width: `${v * 100}%` }}></div></div>
-              <span className="eval-val">{v.toFixed(3)}</span>
-              <span className={`eval-delta ${d ? "show" : ""}`}>{d ? `${d > 0 ? "+" : ""}${d.toFixed(2)}` : ""}</span>
-            </div>
-          );
-        })}
-      </div>
-      <div>
-        <div className="sec-label">INFERENCE</div>
-        <div className="sec-rule"></div>
-        <div className="inf-row"><span className="inf-label">CACHE HIT RATE</span><span className="inf-val">{stats.cache_hit_rate.toFixed(2)}</span></div>
-        <div className="inf-row"><span className="inf-label">TOKENS PER SEC</span><span className="inf-val">{stats.tokens_per_sec}</span></div>
-        <div className="inf-row"><span className="inf-label">P95 LATENCY</span><span className="inf-val">{stats.p95_latency_ms}MS</span></div>
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ---------- SOURCES ----------
-function SourcesPage() {
+function SourcesPage({ B }) {
   const sources = B.seedSources;
   const connected = sources.filter(s => s.status === "connected").length;
   return (
     <div className="page">
       <div className="hero-wrap">
         <h1 className="headline">Where Atlas <span className="ital">looks</span>.</h1>
-        <img src="assets/arrow-curve-down.svg" className="arrow-callout above-right" alt="" />
       </div>
       <p className="subhead">Plug in your stack. Atlas indexes everything (Slack, Notion, Drive, Jira, GitHub) and grounds every answer in real sources.</p>
-      <div className="statline">{connected} OF {sources.length} CONNECTED, ~64% OF ACME'S KNOWLEDGE GRAPH INDEXED</div>
+      <div className="statline">{connected} OF {sources.length} CONNECTED, ~64% OF BU'S KNOWLEDGE GRAPH INDEXED</div>
 
       <div style={{marginTop:64,maxWidth:1080}}>
         <div className="sec-head">
@@ -406,7 +402,7 @@ function SourcesPage() {
 }
 
 // ---------- METRICS ----------
-function MetricsPage() {
+function MetricsPage({ B }) {
   const chartRef = useRef(null);
   useEffect(() => {
     if (!chartRef.current || !window.Plotly) return;
@@ -442,7 +438,7 @@ function MetricsPage() {
     <div className="page">
       <h1 className="headline">By the <span className="ital">numbers</span>.</h1>
       <p className="subhead">Live evaluation across retrieval modes. Real RAGAs metrics, real prefix cache rates, real throughput on vLLM.</p>
-      <div className="statline">47 QUERIES THIS SESSION, 9 ACME CORPUS DOCS, vLLM + LLAMA 3.2 VISION</div>
+      <div className="statline">47 QUERIES THIS SESSION, 9 BU CORPUS DOCS, vLLM + LLAMA 3.2 VISION</div>
 
       {/* ABLATION */}
       <div className="metrics-section" style={{maxWidth:1080}}>
@@ -511,18 +507,43 @@ function MetricsPage() {
 }
 
 // ---------- ARCHIVE ----------
-function ArchivePage({ setPage }) {
+function escapeRegex(s) { return s.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+function archiveRelevance(a, terms) {
+  let score = 0;
+  for (const t of terms) {
+    const re = new RegExp(escapeRegex(t), "gi");
+    const qMatches = (a.query.match(re) || []).length;
+    const xMatches = (a.excerpt.match(re) || []).length;
+    const cMatches = ((a.citation || "").match(re) || []).length;
+    score += qMatches * 3 + xMatches * 1.5 + cMatches;
+    if (a.query.toLowerCase().includes(t)) score += 2;
+  }
+  return score;
+}
+
+function ArchivePage({ setPage, B }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const filters = ["All", "Engineering", "Sales", "Operations", "High score", "Low score"];
 
-  const filtered = B.archive.filter(a => {
-    if (search && !a.query.toLowerCase().includes(search.toLowerCase()) && !a.excerpt.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filter === "All") return true;
-    if (filter === "High score") return a.score >= 0.85;
-    if (filter === "Low score") return a.score < 0.75;
-    return a.team === filter;
-  });
+  const q = search.trim().toLowerCase();
+  const terms = q ? q.split(/\s+/).filter(Boolean) : [];
+
+  const filtered = B.archive
+    .filter(a => {
+      if (filter === "High score") return a.score >= 0.85;
+      if (filter === "Low score") return a.score < 0.75;
+      if (filter !== "All" && a.team !== filter) return false;
+      if (!terms.length) return true;
+      return terms.some(t =>
+        a.query.toLowerCase().includes(t) ||
+        a.excerpt.toLowerCase().includes(t) ||
+        (a.citation || "").toLowerCase().includes(t)
+      );
+    })
+    .map(a => ({ ...a, _rel: terms.length ? archiveRelevance(a, terms) : null }))
+    .sort((a, b) => terms.length ? b._rel - a._rel : 0);
 
   // group by week_label, keep order
   const groups = [];
@@ -550,21 +571,17 @@ function ArchivePage({ setPage }) {
         {groups.map((g, gi) => (
           <div key={gi}>
             <div className="week-header">{g.label}</div>
-            {g.items.map((a, i) => {
-              const sc = a.score >= 0.85 ? "high" : a.score >= 0.75 ? "mid" : "low";
-              return (
-                <div key={i} className="archive-row" onClick={() => setPage("today")}>
-                  <div className="ar-time"><span className="d">{a.timestamp_d}</span>{a.timestamp_t}</div>
-                  <div className="ar-asker"><span>{a.asker}</span></div>
-                  <div>
-                    <div className="ar-q">{a.query}</div>
-                    <div className="ar-x">{a.excerpt}</div>
-                    <div className="ar-c">↳ {a.citation}</div>
-                  </div>
-                  <div className={`ar-score ${sc}`}>{a.score.toFixed(2)}</div>
+            {g.items.map((a, i) => (
+              <div key={i} className="archive-row" onClick={() => setPage("today")}>
+                <div className="ar-time"><span className="d">{a.timestamp_d}</span>{a.timestamp_t}</div>
+                <div className="ar-asker"><span>{a.asker}</span></div>
+                <div>
+                  <div className="ar-q">{a.query}</div>
+                  <div className="ar-x">{a.excerpt}</div>
+                  <div className="ar-c">↳ {a.citation}</div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -575,6 +592,35 @@ function ArchivePage({ setPage }) {
 // ---------- APP ----------
 function App() {
   const [page, setPage] = useState("today");
+  const [B, setB] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    window.Backend.load()
+      .then(data => setB(data))
+      .catch(err => {
+        console.error("Backend load failed:", err);
+        setLoadError(err.message);
+      });
+  }, []);
+
+  // Poll for fresh signals + archive every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      window.Backend.refresh().then(updates => {
+        setB(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ...(updates.teamSignals ? { teamSignals: updates.teamSignals } : {}),
+            ...(updates.archive ? { archive: updates.archive } : {}),
+            ...(updates.seedSources ? { seedSources: updates.seedSources } : {}),
+          };
+        });
+      }).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Cmd+K
   useEffect(() => {
@@ -589,13 +635,39 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  if (loadError) {
+    return (
+      <div className="app" style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh"}}>
+        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#FF4A1C"}}>
+          LOAD ERROR: {loadError}
+        </div>
+      </div>
+    );
+  }
+
+  if (!B) {
+    return (
+      <div className="app" style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh"}}>
+        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#A0A0A0",letterSpacing:"0.14em"}}>
+          {B === null ? "LOADING..." : "READY"}
+          {!B?.live && B !== null && <span style={{marginLeft:16,color:"#FF4A1C"}}>MOCK DATA</span>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
-      <Chrome page={page} setPage={setPage} />
-      {page === "today" && <TodayPage key="today" setPage={setPage} />}
-      {page === "sources" && <SourcesPage key="sources" />}
-      {page === "metrics" && <MetricsPage key="metrics" />}
-      {page === "archive" && <ArchivePage key="archive" setPage={setPage} />}
+      {!B.live && (
+        <div style={{position:"fixed",bottom:12,right:16,fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#FF4A1C",letterSpacing:"0.12em",zIndex:100}}>
+          MOCK DATA — run node server.js to connect live sources
+        </div>
+      )}
+      <Chrome page={page} setPage={setPage} B={B} />
+      {page === "today" && <TodayPage key="today" setPage={setPage} B={B} />}
+      {page === "sources" && <SourcesPage key="sources" B={B} />}
+      {page === "metrics" && <MetricsPage key="metrics" B={B} />}
+      {page === "archive" && <ArchivePage key="archive" setPage={setPage} B={B} />}
     </div>
   );
 }
