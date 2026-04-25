@@ -55,7 +55,7 @@ Each team member redeems their code individually via the QR code or link shared 
 In the Brev Console:
 
 - **Runtime:** VM Mode (Ubuntu 22.04)
-- **GPU:** 2× (any 2-GPU option — one GPU per model)
+- **GPU:** 2× H100 (80GB VRAM each — one GPU per model)
 - **Disk:** 100 GB
 - **Setup script:** paste the full contents of `launchable-configs/tier1-app-builder/setup.sh` from this repo
 - **Expose ports:**
@@ -91,7 +91,7 @@ export HF_TOKEN=hf_YOUR_TOKEN_HERE
 CUDA_VISIBLE_DEVICES=1 vllm serve meta-llama/Llama-3.2-11B-Vision-Instruct \
   --host 0.0.0.0 \
   --port 8001 \
-  --max-model-len 4096 \
+  --max-model-len 8192 \
   --gpu-memory-utilization 0.90 \
   --enable-prefix-caching \
   --dtype auto

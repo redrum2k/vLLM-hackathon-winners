@@ -2,7 +2,7 @@
 # =============================================================================
 # TOA vLLM/LLM-D Hackathon — Tier 1: App & Inference Builder
 # Brev Launchable Setup Script
-# GPU: 2x (one per model)
+# GPU: 2x H100 (80GB VRAM each, one per model)
 # Models: Llama 3.1 8B Instruct (text, port 8000)
 #         Llama 3.2 11B Vision Instruct (vision/ingestion, port 8001)
 # NOTE: Set HF_TOKEN in your Brev environment before launching —
@@ -105,7 +105,7 @@ CUDA_VISIBLE_DEVICES=0 python3 -m vllm.entrypoints.openai.api_server \
     --model /models/llama-3.1-8b-instruct \
     --host 0.0.0.0 \
     --port 8000 \
-    --max-model-len 8192 \
+    --max-model-len 32768 \
     --gpu-memory-utilization 0.90 \
     --enable-prefix-caching \
     --dtype auto
@@ -123,7 +123,7 @@ CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server \
     --model /models/llama-3.2-11b-vision-instruct \
     --host 0.0.0.0 \
     --port 8001 \
-    --max-model-len 4096 \
+    --max-model-len 8192 \
     --gpu-memory-utilization 0.90 \
     --enable-prefix-caching \
     --dtype auto
