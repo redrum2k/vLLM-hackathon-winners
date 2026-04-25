@@ -2,8 +2,11 @@
 # =============================================================================
 # TOA vLLM/LLM-D Hackathon — Tier 1: App & Inference Builder
 # Brev Launchable Setup Script
-# GPU: 1x L40S (48GB VRAM)
-# Model: Meta Llama 3.1 8B Instruct
+# GPU: 2x (one per model)
+# Models: Llama 3.1 8B Instruct (text, port 8000)
+#         Llama 3.2 11B Vision Instruct (vision/ingestion, port 8001)
+# NOTE: Set HF_TOKEN in your Brev environment before launching —
+#       Llama 3.2 Vision is a gated model and requires it to download.
 # =============================================================================
 
 set -euo pipefail
@@ -59,6 +62,24 @@ snapshot_download(
 )
 "
 
+# --- Download Llama 3.2 11B Vision Instruct (gated — requires HF_TOKEN) ---
+echo "[2b/6] Downloading Llama 3.2 11B Vision Instruct weights..."
+if [ -z "${HF_TOKEN:-}" ]; then
+    echo "  WARNING: HF_TOKEN not set — skipping vision model download."
+    echo "  Set HF_TOKEN and re-run: python3 -c \""
+    echo "    from huggingface_hub import snapshot_download"
+    echo "    snapshot_download('meta-llama/Llama-3.2-11B-Vision-Instruct', local_dir='/models/llama-3.2-11b-vision-instruct')\""
+else
+    python3 -c "
+from huggingface_hub import snapshot_download
+snapshot_download(
+    'meta-llama/Llama-3.2-11B-Vision-Instruct',
+    local_dir='/models/llama-3.2-11b-vision-instruct',
+    ignore_patterns=['*.pth', 'original/**']
+)
+"
+fi
+
 # --- Download a small embedding model for RAG track ---
 echo "[3/6] Downloading embedding model for RAG..."
 python3 -c "
@@ -77,20 +98,37 @@ mkdir -p /workspace/app-scaffold
 # --- Write a quick-start vLLM serving script ---
 cat > /workspace/start_vllm_server.sh << 'VLLM_SCRIPT'
 #!/bin/bash
-# Start vLLM serving Llama 3.1 8B on this GPU
-# API will be available at http://localhost:8000
-echo "Starting vLLM server with Llama 3.1 8B Instruct..."
-echo "API docs: http://localhost:8000/docs"
+# Start vLLM serving Llama 3.1 8B Instruct on GPU 0 (port 8000)
+echo "Starting vLLM text server (Llama 3.1 8B) on GPU 0..."
 echo "OpenAI-compatible endpoint: http://localhost:8000/v1"
-python3 -m vllm.entrypoints.openai.api_server \
+CUDA_VISIBLE_DEVICES=0 python3 -m vllm.entrypoints.openai.api_server \
     --model /models/llama-3.1-8b-instruct \
     --host 0.0.0.0 \
     --port 8000 \
     --max-model-len 8192 \
-    --gpu-memory-utilization 0.85 \
+    --gpu-memory-utilization 0.90 \
+    --enable-prefix-caching \
     --dtype auto
 VLLM_SCRIPT
 chmod +x /workspace/start_vllm_server.sh
+
+# --- Write vision model serving script ---
+cat > /workspace/start_vllm_vision_server.sh << 'VISION_SCRIPT'
+#!/bin/bash
+# Start vLLM serving Llama 3.2 11B Vision Instruct on GPU 1 (port 8001)
+# Used during corpus ingestion to transcribe PDFs and images.
+echo "Starting vLLM vision server (Llama 3.2 11B Vision) on GPU 1..."
+echo "OpenAI-compatible endpoint: http://localhost:8001/v1"
+CUDA_VISIBLE_DEVICES=1 python3 -m vllm.entrypoints.openai.api_server \
+    --model /models/llama-3.2-11b-vision-instruct \
+    --host 0.0.0.0 \
+    --port 8001 \
+    --max-model-len 4096 \
+    --gpu-memory-utilization 0.90 \
+    --enable-prefix-caching \
+    --dtype auto
+VISION_SCRIPT
+chmod +x /workspace/start_vllm_vision_server.sh
 
 # --- Write a quick test client ---
 cat > /workspace/test_client.py << 'TEST_CLIENT'
@@ -197,8 +235,9 @@ check() {
 check "NVIDIA GPU detected"       "nvidia-smi"
 check "CUDA available"            "python3 -c 'import torch; assert torch.cuda.is_available()'"
 check "vLLM installed"            "python3 -c 'import vllm'"
-check "Model weights present"     "test -d /models/llama-3.1-8b-instruct"
-check "Embedding model present"   "test -d /models/bge-small-en"
+check "Text model weights present"   "test -d /models/llama-3.1-8b-instruct"
+check "Vision model weights present" "test -d /models/llama-3.2-11b-vision-instruct"
+check "Embedding model present"      "test -d /models/bge-small-en"
 check "LangChain installed"       "python3 -c 'import langchain'"
 check "ChromaDB installed"        "python3 -c 'import chromadb'"
 check "TRL installed"             "python3 -c 'import trl'"
@@ -224,10 +263,11 @@ echo "============================================="
 echo "  ✅ Environment ready!"
 echo ""
 echo "  Quick start:"
-echo "    1. bash /workspace/test_setup.sh     (validate)"
-echo "    2. bash /workspace/start_vllm_server.sh  (start LLM)"
-echo "    3. python3 /workspace/test_client.py     (test it)"
+echo "    1. bash /workspace/test_setup.sh               (validate)"
+echo "    2. bash /workspace/start_vllm_server.sh        (text model,   GPU 0, port 8000)"
+echo "    3. bash /workspace/start_vllm_vision_server.sh (vision model, GPU 1, port 8001)"
+echo "    4. python3 /workspace/test_client.py           (test text endpoint)"
 echo ""
-echo "  Model: Llama 3.1 8B Instruct"
-echo "  API:   http://localhost:8000/v1"
+echo "  Text model  : Llama 3.1 8B Instruct → http://localhost:8000/v1"
+echo "  Vision model: Llama 3.2 11B Vision  → http://localhost:8001/v1"
 echo "============================================="
