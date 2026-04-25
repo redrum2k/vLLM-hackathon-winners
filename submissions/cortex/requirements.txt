@@ -17,8 +17,9 @@ chromadb>=0.6,<1.0
 # --- PDF processing ---
 PyMuPDF>=1.24,<2.0
 
-# --- Embeddings ---
+# --- Embeddings + reranking ---
 sentence-transformers>=3.0,<4.0
+rank-bm25>=0.2,<1.0
 
 # --- Evaluation ---
 ragas>=0.2,<1.0
