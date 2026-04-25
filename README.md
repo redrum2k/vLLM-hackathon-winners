@@ -95,3 +95,20 @@ RAGAs Evaluation
         |
         v
 Dashboard / Demo UI
+```
+
+### Tech Stack
+
+- **Languages:** Python 3.11, JavaScript (Node.js), HTML/CSS
+- **LLM Inference:** vLLM (OpenAI-compatible API)
+- **LLM Model:** Meta Llama 3.1 8B Instruct
+- **RAG Framework:** LlamaIndex
+- **Vector Store:** ChromaDB
+- **Embeddings:** BAAI/bge-small-en-v1.5
+- **Reranker:** BAAI/bge-reranker-large
+- **API Server:** FastAPI + Uvicorn
+- **Web Server:** Express.js
+- **Frontend:** React (CDN), CSS custom properties
+- **Evaluation:** RAGAs
+- **Infrastructure:** Brev cloud (L40S / A100 GPU)
+
