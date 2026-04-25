@@ -98,7 +98,7 @@ def _load_resources():
     _index = VectorStoreIndex.from_vector_store(vector_store, storage_context=storage_context, embed_model=embed_model)
 
     print("Loading reranker ...")
-    _reranker = SentenceTransformerRerank(model="BAAI/bge-reranker-large", top_n=5)
+    _reranker = SentenceTransformerRerank(model="BAAI/bge-reranker-base", top_n=5, device="cpu")
 
     print(f"Connecting to LLM at {LLM_ENDPOINT} ...")
     _llm = OpenAILike(
