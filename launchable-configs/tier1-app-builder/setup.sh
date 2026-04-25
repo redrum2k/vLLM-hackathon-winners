@@ -22,33 +22,31 @@ sudo apt-get install -y -qq git curl wget jq htop tmux tree
 
 # --- Python environment ---
 echo "[1/6] Setting up Python environment..."
-pip install --upgrade pip --break-system-packages -q
+PIP="pip install --break-system-packages -q --timeout 300 --retries 5"
+
+$PIP --upgrade pip
+
 # Pin numpy<2 first: numpy.distutils was removed in 2.0, breaking numexpr's source build
-pip install --break-system-packages -q "numpy<2"
-pip install --break-system-packages -q \
-    vllm \
-    torch \
-    transformers \
-    huggingface_hub \
-    langchain \
-    langchain-community \
-    langchain-huggingface \
-    chromadb \
-    sentence-transformers \
-    fastapi \
-    uvicorn \
-    httpx \
-    gradio \
-    guidellm \
-    lm-eval \
-    llmcompressor \
-    trl \
-    peft \
-    datasets \
-    jupyter \
-    ipywidgets \
-    pandas \
-    rich
+$PIP "numpy<2"
+
+# Install in small batches — if one package times out it won't kill everything
+echo "      [1a] Core ML stack..."
+$PIP vllm torch transformers huggingface_hub
+
+echo "      [1b] LangChain..."
+$PIP langchain langchain-community langchain-huggingface
+
+echo "      [1c] Vector store + embeddings..."
+$PIP chromadb sentence-transformers
+
+echo "      [1d] Serving + HTTP..."
+$PIP fastapi uvicorn httpx gradio
+
+echo "      [1e] Eval + training..."
+$PIP guidellm lm-eval llmcompressor trl peft datasets
+
+echo "      [1f] Notebooks + utilities..."
+$PIP jupyter ipywidgets pandas rich
 
 # --- Download model weights (critical for saving hack time) ---
 echo "[2/6] Downloading Llama 3.1 8B Instruct weights..."
