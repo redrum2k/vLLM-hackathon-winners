@@ -1,6 +1,8 @@
-# Environment
+# Environment & secrets — never commit these
 .env
 .env.local
+service-account.json
+*.json.key
 
 # Virtual environments
 .venv/
@@ -41,3 +43,4 @@ build/
 .vscode/
 *.swp
 *.swo
+node_modules/
