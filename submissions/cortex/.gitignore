@@ -1,0 +1,43 @@
+# Environment
+.env
+.env.local
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Corpus and data (share via tar, not git)
+data/
+*.tar.gz
+*.zip
+
+# ChromaDB (rebuilt from corpus — never commit)
+chroma_db/
+
+# RAGAs output
+ragas_*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
