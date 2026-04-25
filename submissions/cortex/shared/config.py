@@ -5,13 +5,19 @@ Copy .env.example to .env and fill in values before running anything.
 import os
 from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env", override=False)
+except ImportError:
+    pass
+
 # vLLM endpoints (running on Brev — override these with the Brev public address)
 VLLM_TEXT_ENDPOINT   = os.getenv("VLLM_TEXT_ENDPOINT",   "http://localhost:8000/v1")
 VLLM_VISION_ENDPOINT = os.getenv("VLLM_VISION_ENDPOINT", "http://localhost:8001/v1")
 
 # Model names (must match what vLLM was started with)
-TEXT_MODEL   = os.getenv("TEXT_MODEL",   "meta-llama/Llama-3.1-8B-Instruct")
-VISION_MODEL = os.getenv("VISION_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct")
+TEXT_MODEL   = os.getenv("TEXT_MODEL",   "/models/llama-3.1-8b-instruct")
+VISION_MODEL = os.getenv("VISION_MODEL", "/models/qwen2.5-vl-7b")
 
 # ChromaDB
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
