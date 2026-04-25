@@ -79,7 +79,7 @@ if [ -z "$VISION_RESP" ]; then
     echo ""
     echo "           bash /workspace/start_vllm_vision_server.sh"
     echo "         Or manually:"
-    echo "           CUDA_VISIBLE_DEVICES=1 vllm serve meta-llama/Llama-3.2-11B-Vision-Instruct \\"
+    echo "           CUDA_VISIBLE_DEVICES=1 vllm serve Qwen/Qwen2.5-VL-7B-Instruct \\"
     echo "             --host 0.0.0.0 --port 8001 \\"
     echo "             --max-model-len 8192 \\"
     echo "             --gpu-memory-utilization 0.90 \\"

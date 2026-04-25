@@ -18,7 +18,7 @@ Usage:
 import os
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import (
+from ragas.metrics.collections import (
     faithfulness,
     answer_relevancy,
     context_precision,
