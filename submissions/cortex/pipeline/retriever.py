@@ -81,7 +81,7 @@ def _get_bm25() -> tuple[BM25Okapi, list[Chunk]]:
     if _bm25_cache is None:
         db = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
         col = db.get_collection(CHROMA_COLLECTION)
-        result = col.get(include=["documents", "metadatas", "ids"])
+        result = col.get(include=["documents", "metadatas"])
         chunks = [
             Chunk(
                 text=doc,
