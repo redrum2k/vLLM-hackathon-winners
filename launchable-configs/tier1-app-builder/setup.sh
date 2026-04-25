@@ -20,9 +20,9 @@ echo "============================================="
 sudo apt-get update -qq
 sudo apt-get install -y -qq git curl wget jq htop tmux tree
 
-# --- Create /models dir with correct ownership ---
-sudo mkdir -p /models
-sudo chown "$(whoami):$(whoami)" /models
+# --- Create /models and /workspace dirs with correct ownership ---
+sudo mkdir -p /models /workspace
+sudo chown "$(whoami):$(whoami)" /models /workspace
 
 # --- Python environment ---
 echo "[1/6] Setting up Python environment..."
