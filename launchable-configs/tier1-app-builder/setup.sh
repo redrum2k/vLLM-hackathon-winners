@@ -30,14 +30,9 @@ PIP="pip install --break-system-packages -q --timeout 300 --retries 5"
 
 $PIP --upgrade pip
 
-# Pin numpy<2 first: numpy.distutils was removed in 2.0, breaking numexpr's source build
-$PIP "numpy<2"
-
 # Install in small batches — if one package times out it won't kill everything
 echo "      [1a] Core ML stack..."
 $PIP vllm torch transformers huggingface_hub
-# Fix dependency conflict: vllm requires a specific compressed-tensors version
-$PIP "compressed-tensors==0.15.0.1"
 
 echo "      [1b] LangChain..."
 $PIP langchain langchain-community langchain-huggingface
@@ -49,7 +44,7 @@ echo "      [1d] Serving + HTTP..."
 $PIP fastapi uvicorn httpx gradio
 
 echo "      [1e] Eval + training..."
-$PIP guidellm lm-eval llmcompressor trl peft datasets
+$PIP guidellm lm-eval trl peft datasets
 
 echo "      [1f] Notebooks + utilities..."
 $PIP jupyter ipywidgets pandas rich
