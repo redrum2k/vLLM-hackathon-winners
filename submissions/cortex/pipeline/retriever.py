@@ -27,6 +27,27 @@ from shared.config import (
 )
 from shared.types import Answer, Chunk, RetrievalResult
 
+_SYSTEM_PROMPTS: dict[str, str] = {
+    "faculty": (
+        "You are a knowledgeable academic assistant for faculty members. "
+        "Provide detailed, technical answers with precise references to source materials. "
+        "Include nuance, methodology, and supporting evidence where relevant."
+    ),
+    "student": (
+        "You are a helpful academic assistant for students. "
+        "Explain concepts clearly and accessibly, breaking down complex ideas into "
+        "understandable steps. Use examples where helpful."
+    ),
+    "guest": (
+        "You are a concise assistant for guests unfamiliar with this institution. "
+        "Give brief, jargon-free overviews. Focus on the most important information only."
+    ),
+    "default": (
+        "You are a helpful assistant. Answer the question using only the context provided. "
+        "If the answer is not in the context, say so."
+    ),
+}
+
 # Module-level cache so the embedding model and index are only loaded once per process
 _index_cache: VectorStoreIndex | None = None
 _embed_cache: HuggingFaceEmbedding | None = None
@@ -86,6 +107,7 @@ def query(question: str, role: str = "default", method: str = "cosine") -> Answe
     else:
         raise ValueError(f"Unknown method: {method!r}")
 
+    system_prompt = _SYSTEM_PROMPTS.get(role, _SYSTEM_PROMPTS["default"])
     context = "\n\n".join(f"[{c.source}]\n{c.text}" for c in retrieval.chunks)
     prompt = (
         "Answer the question using only the context provided. "
@@ -98,7 +120,7 @@ def query(question: str, role: str = "default", method: str = "cosine") -> Answe
     resp = client.chat.completions.create(
         model=TEXT_MODEL,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": system_prompt},
             {"role": "user",   "content": prompt},
         ],
         temperature=0.2,
