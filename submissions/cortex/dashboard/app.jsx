@@ -58,11 +58,6 @@ function TodayPage({ setPage, B }) {
   const [userRole, setUserRole] = useState("student");
   const [lightbox, setLightbox] = useState(null);
   const inputRef = useRef(null);
-  const m = B.nextMeeting;
-  const hours = Math.floor(m.starts_in_minutes / 60);
-  const mins = m.starts_in_minutes % 60;
-  const upnext = `UP NEXT, IN ${hours}H ${mins}M`;
-
   // expose focus for cmd+k
   useEffect(() => { window.__focusAtlas = () => inputRef.current?.focus(); return () => { delete window.__focusAtlas; }; }, []);
 
@@ -136,29 +131,6 @@ function TodayPage({ setPage, B }) {
       </div>
       <p className="subhead">{subhead}</p>
 
-      {/* BRIEF CARD */}
-      <div className="brief-card">
-        <div className="brief-top">
-          <span className="upnext">{upnext}</span>
-          <div className="attendees">
-            {m.attendees.map((a, i) => <span key={i} className="att">{a}</span>)}
-          </div>
-        </div>
-        <div className="brief-time">
-          <span className="t">{m.time}</span>
-          <span className="ttl">{m.title}</span>
-        </div>
-        <p className="brief-summary">{m.brief_summary}</p>
-        <div className="tag-row">
-          {m.tags.map(([k, v], i) => (
-            <span key={i} className="tag">{k} · {v}</span>
-          ))}
-        </div>
-        <div className="brief-link">
-          <button onClick={() => ask("Brief me on the v2 API design review.")}>ASK ATLAS ABOUT THIS →</button>
-        </div>
-      </div>
-
       {/* TWO COL */}
       <div className="two-col">
         <div className="col">
@@ -204,9 +176,9 @@ function TodayPage({ setPage, B }) {
           <>
             <div className="try-label" style={{marginBottom:16}}>TRY ASKING</div>
             {[
-              "Brief me on the v2 API design review.",
-              "Who owns the Stripe adapter now that Henrik is leaving?",
-              "What is the deployment freeze policy this quarter?",
+              "How many credits does the MBA+MSDT dual degree require?",
+              "Which neighborhoods do BU students live in off-campus?",
+              "What is the Questrom MBA refund schedule?",
             ].map((s, i) => (
               <div key={i} className="try-row" onClick={() => ask(s)}>
                 <span>{s}</span>
@@ -430,15 +402,15 @@ function MetricsPage({ B }) {
   }, []);
 
   const ab = B.ablation;
-  const max = Math.max(...ab.flatMap(r => [r.faithfulness, r.answer_relevancy, r.context_precision, r.context_recall]));
-  const cols = ["faithfulness","answer_relevancy","context_precision","context_recall"];
-  const colHeaders = ["FAITHFULNESS","ANSWER RELEVANCY","CONTEXT PRECISION","CONTEXT RECALL"];
+  const max = Math.max(...ab.flatMap(r => [r.faithfulness, r.context_precision, r.context_recall]));
+  const cols = ["faithfulness","context_precision","context_recall"];
+  const colHeaders = ["FAITHFULNESS","CONTEXT PRECISION","CONTEXT RECALL"];
 
   return (
     <div className="page">
       <h1 className="headline">By the <span className="ital">numbers</span>.</h1>
       <p className="subhead">Live evaluation across retrieval modes. Real RAGAs metrics, real prefix cache rates, real throughput on vLLM.</p>
-      <div className="statline">47 QUERIES THIS SESSION, 9 BU CORPUS DOCS, vLLM + LLAMA 3.2 VISION</div>
+      <div className="statline">9 EVAL QUESTIONS, 3 RETRIEVAL MODES, vLLM + LLAMA 3.1 8B + QWEN2.5-VL-7B</div>
 
       {/* ABLATION */}
       <div className="metrics-section" style={{maxWidth:1080}}>
